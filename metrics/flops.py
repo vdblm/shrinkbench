@@ -8,7 +8,8 @@ from ..pruning.utils import get_activations
 from ..pruning import Conv2dMasked, LinearMasked
 
 
-#  TODO layernorm and attention (Also Masked version of these)
+# TODO layernorm and attention (Also Masked version of these)
+# TODO attention has learnable weights (in_proj_weight, in_proj_bias, out_proj_weight, out_proj_bias)
 def _conv2d_flops(module, activation):
     # Auxiliary func to use abstract flop computation
 
