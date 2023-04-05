@@ -40,6 +40,7 @@ class TrainingExperiment(Experiment):
                  pretrained=False,
                  resume=None,
                  resume_optim=False,
+                 weight_name=None,
                  save_freq=10):
 
         # Default children kwargs
@@ -55,7 +56,7 @@ class TrainingExperiment(Experiment):
 
         self.build_dataloader(dataset, **dl_kwargs)
 
-        self.build_model(model, pretrained, resume)
+        self.build_model(model, pretrained, resume, weight_name)
 
         self.build_train(resume_optim=resume_optim, **train_kwargs)
 
@@ -76,14 +77,17 @@ class TrainingExperiment(Experiment):
         self.train_dl = DataLoader(self.train_dataset, shuffle=True, **dl_kwargs)
         self.val_dl = DataLoader(self.val_dataset, shuffle=False, **dl_kwargs)
 
-    def build_model(self, model, pretrained=True, resume=None):
+    def build_model(self, model, pretrained=True, resume=None, weight_name=None):
         if isinstance(model, str):
             if hasattr(models, model):
                 model = getattr(models, model)(pretrained=pretrained)
 
             elif hasattr(torchvision.models, model):
                 # https://pytorch.org/docs/stable/torchvision/models.html
-                model = getattr(torchvision.models, model)(pretrained=pretrained)
+                if weight_name is None:
+                    model = getattr(torchvision.models, model)(pretrained=pretrained)
+                else:
+                    model = getattr(torchvision.models, model)(weights=weight_name)
                 mark_classifier(model)  # add is_classifier attribute
             else:
                 raise ValueError(f"Model {model} not available in custom models or torchvision models")

@@ -10,6 +10,11 @@ MODELS_WITH_FC = (
     torchvision.models.ShuffleNetV2,
 )
 
+# classifier is .heads.head
+MODELS_WITH_HEADS = (
+    torchvision.models.VisionTransformer,
+)
+
 # classifier is .classifier
 MODELS_WITH_CLASSIFIER = (
     torchvision.models.DenseNet,
@@ -117,6 +122,8 @@ def get_classifier_module(model):
     elif isinstance(model, MODELS_WITH_CLASSIFIER_LIST):
         i = len(model.classifier) - 1
         clf = f"classifier.{i}"
+    elif isinstance(model, MODELS_WITH_HEADS):
+        clf = 'heads.head'
 
     elif isinstance(model, torchvision.models.SqueezeNet):
         # TODO: Non standard, uses convs

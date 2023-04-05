@@ -1,12 +1,14 @@
 import numpy as np
 from torch import nn
+import torch
 
 from . import nonzero
-from .abstract_flops import dense_flops, conv2d_flops
+from .abstract_flops import dense_flops, conv2d_flops, attention_flops
 from ..pruning.utils import get_activations
 from ..pruning import Conv2dMasked, LinearMasked
 
 
+#  TODO layernorm and attention (Also Masked version of these)
 def _conv2d_flops(module, activation):
     # Auxiliary func to use abstract flop computation
 
@@ -21,6 +23,15 @@ def _conv2d_flops(module, activation):
                         padding=module.padding_mode,
                         strides=module.stride,
                         dilation=module.dilation)
+
+
+def _layer_norm_flops(module, activation):
+    # Calculate flops for layer norm TODO not sure!
+    return torch.prod(torch.tensor(module.normalized_shape)) * 3
+
+
+def _attention_flops(module, activation):
+    return attention_flops(module.embed_dim, module.num_heads)
 
 
 def _linear_flops(module, activation):
@@ -45,6 +56,9 @@ def flops(model, input):
         nn.Linear: _linear_flops,
         Conv2dMasked: _conv2d_flops,
         LinearMasked: _linear_flops,
+        nn.LayerNorm: _layer_norm_flops,
+        nn.MultiheadAttention: _attention_flops,
+        # TODO masked version of these
     }
 
     total_flops = nonzero_flops = 0
@@ -53,11 +67,14 @@ def flops(model, input):
     # The ones we need for backprop
     for m, (act, _) in activations.items():
         if m.__class__ in FLOP_fn:
-            w = m.weight.detach().cpu().numpy().copy()
             module_flops = FLOP_fn[m.__class__](m, act)
             total_flops += module_flops
             # For our operations, all weights are symmetric so we can just
             # do simple rule of three for the estimation
-            nonzero_flops += module_flops * nonzero(w).sum() / np.prod(w.shape)
+            try:
+                w = m.weight.detach().cpu().numpy().copy()
+                nonzero_flops += module_flops * nonzero(w).sum() / np.prod(w.shape)
+            except AttributeError:
+                nonzero_flops = module_flops
 
     return total_flops, nonzero_flops

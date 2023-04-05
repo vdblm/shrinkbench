@@ -8,6 +8,11 @@ def dense_flops(in_neurons, out_neurons):
     return in_neurons * out_neurons
 
 
+def attention_flops(embed_dim, num_heads):
+    """Compute the number of multiply-adds used by an attention layer"""
+    return 3 * embed_dim * num_heads
+
+
 def conv2d_flops(in_channels, out_channels, input_shape, kernel_shape,
                  padding='same', strides=1, dilation=1):
     """Compute the number of multiply-adds used by a Conv2D layer
