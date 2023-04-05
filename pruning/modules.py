@@ -25,7 +25,7 @@ def _same_device(x_mask, x):
     # Aux function to ensure same device fo weight and mask
     # so _mul doesn't fail
     if x.device != x_mask.device:
-        return x_mask.to(x.device)
+            return x_mask.to(x.device)
     return x_mask
 
 
@@ -63,12 +63,12 @@ class MaskedModule(nn.Module):
         assert _same_shape(weight_mask, self.weight), f"Weight Mask must match dimensions"
 
         # Multiply weights by masks so metrics can count nonzeros
-        weight_mask = _ensure_tensor(weight_mask)
+        weight_mask = _ensure_tensor(weight_mask).to('cuda')
         self.weight_mask = _same_device(weight_mask, self.weight)
         self.weight.data.mul_(weight_mask)
 
         if bias_mask is not None:
-            bias_mask = _ensure_tensor(bias_mask)
+            bias_mask = _ensure_tensor(bias_mask).to('cuda')
             assert self.bias is not None, "Provided layer must have bias for it to be masked"
             assert _same_shape(bias_mask, self.bias), f"Bias Mask must match dimensions"
             self.bias_mask = _same_device(bias_mask, self.bias)

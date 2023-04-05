@@ -15,13 +15,13 @@ from .. import models
 from ..metrics import correct
 from ..models.head import mark_classifier
 from ..util import printc, OnlineStats
-
+from multiprocessing import freeze_support
 
 class TrainingExperiment(Experiment):
 
     default_dl_kwargs = {'batch_size': 128,
                          'pin_memory': False,
-                         'num_workers': 8
+                         'num_workers': 0 #todo removed multi-processing because of error - not sure how to resolve
                          }
 
     default_train_kwargs = {'optim': 'SGD',
@@ -221,3 +221,7 @@ class TrainingExperiment(Experiment):
         
         assert isinstance(self.params['model'], str), f"\nUnexpected model inputs: {self.params['model']}"
         return json.dumps(self.params, indent=4)
+
+
+if __name__ == '__main__':
+    freeze_support()
