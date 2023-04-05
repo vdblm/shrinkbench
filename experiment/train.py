@@ -23,7 +23,7 @@ from ..util import printc, OnlineStats
 class TrainingExperiment(Experiment):
     default_dl_kwargs = {'batch_size': 128,
                          'pin_memory': False,
-                         'num_workers': 8
+                         'num_workers': 0 #todo removed multi-processing because of error - not sure how to resolve
                          }
 
     default_train_kwargs = {'optim': 'SGD',
