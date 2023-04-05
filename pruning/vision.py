@@ -16,7 +16,7 @@ class VisionPruning(Pruning):
 
         if hasattr(module, 'is_classifier'):
             return not module.is_classifier
-        if isinstance(module, (MaskedModule, nn.Linear, nn.Conv2d)):
+        if isinstance(module, (MaskedModule, nn.Linear, nn.Conv2d)):  # TODO should add attention layers
             return True
         return False
 

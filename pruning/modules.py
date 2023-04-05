@@ -14,6 +14,8 @@ import torch.nn.functional as F
 from torch.nn.modules.utils import _pair
 
 
+# TODO need to add multihead attention masked version
+
 def _ensure_tensor(x):
     # Aux functions in case mask arguments are numpy arrays
     if not isinstance(x, torch.Tensor) and x is not None:
@@ -33,6 +35,96 @@ def _same_shape(x_mask, x):
     if isinstance(x, torch.Tensor):
         x = x.cpu().detach().numpy()
     return x.shape == x_mask.shape
+
+
+class AttentionMasked(nn.Module):
+    def __init__(self, attention_layer, in_weight_mask, out_weight_mask, in_bias_mask=None, out_bias_mask=None):
+        super(AttentionMasked, self).__init__()
+        assert isinstance(attention_layer, nn.MultiheadAttention), "Layer must be an attention layer"
+        for attr in ['embed_dim', 'num_heads', 'dropout', 'bias', 'add_bias_kv', 'add_zero_attn',
+                     'kdim', 'vdim', 'batch_first', 'device', 'dtype']:
+            setattr(self, attr, getattr(attention_layer, attr))
+
+        self.in_proj_weight = attention_layer.in_proj_weight
+        self.in_proj_bias = attention_layer.in_proj_bias
+        self.out_proj_weight = attention_layer.out_proj_weight
+        self.out_proj_bias = attention_layer.out_proj_bias
+
+        self.register_buffer("in_weight_mask", None)
+        self.register_buffer("in_bias_mask", None)
+        self.register_buffer("out_weight_mask", None)
+        self.register_buffer("out_bias_mask", None)
+
+        self.set_masks(in_weight_mask, in_bias_mask, out_weight_mask, out_bias_mask)
+
+    def forward_pre(self):
+        in_weight = self.in_proj_weight * self.in_weight_mask
+        out_weight = self.out_proj_weight * self.out_weight_mask
+
+        if self.in_bias_mask is not None:
+            in_bias = self.in_proj_bias * self.in_bias_mask
+        else:
+            in_bias = self.in_proj_bias
+
+        if self.out_bias_mask is not None:
+            out_bias = self.out_proj_bias * self.out_bias_mask
+        else:
+            out_bias = self.out_proj_bias
+
+        return in_weight, in_bias, out_weight, out_bias
+
+    def set_masks(self, in_weight_mask, out_weight_mask, in_bias_mask=None, out_bias_mask=None):
+        assert _same_shape(in_weight_mask, self.in_proj_weight)
+        assert _same_shape(out_weight_mask, self.out_proj_weight)
+        assert _same_shape(in_bias_mask, self.in_proj_bias)
+        assert _same_shape(out_bias_mask, self.out_proj_bias)
+
+        in_weight_mask = _ensure_tensor(in_weight_mask)
+        self.in_proj_weight = _same_device(in_weight_mask, self.in_proj_weight)
+        self.in_proj_weight.data.mul_(in_weight_mask)
+
+        out_weight_mask = _ensure_tensor(out_weight_mask)
+        self.out_proj_weight = _same_device(out_weight_mask, self.out_proj_weight)
+        self.out_proj_weight.data.mul_(out_weight_mask)
+
+        if in_bias_mask is not None:
+            in_bias_mask = _ensure_tensor(in_bias_mask)
+            assert self.in_proj_bias is not None, "Provided layer must have bias for it to be masked"
+            assert _same_shape(in_bias_mask, self.in_proj_bias), f"Bias Mask must match dimensions"
+            self.in_proj_bias = _same_device(in_bias_mask, self.in_proj_bias)
+            self.in_proj_bias.data.mul_(in_bias_mask)
+
+        if out_bias_mask is not None:
+            out_bias_mask = _ensure_tensor(out_bias_mask)
+            assert self.out_proj_bias is not None, "Provided layer must have bias for it to be masked"
+            assert _same_shape(out_bias_mask, self.out_proj_bias), f"Bias Mask must match dimensions"
+            self.out_proj_bias = _same_device(out_bias_mask, self.out_proj_bias)
+            self.out_proj_bias.data.mul_(out_bias_mask)
+
+    def forward(
+            self,
+            query,
+            key,
+            value,
+            key_padding_mask=None,
+            need_weights=True,
+            attn_mask=None,
+            average_attn_weights=True,
+            is_causal=False):
+        in_weight, in_bias, out_weight, out_bias = self.forward_pre()
+        return F.multi_head_attention_forward(query=query, key=key, value=value, embed_dim_to_check=self.embed_dim,
+                                              num_heads=self.num_heads, in_proj_weight=in_weight, in_proj_bias=in_bias,
+                                              bias_k=None, bias_v=None, add_zero_attn=self.add_zero_attn,
+                                              dropout_p=self.dropout,
+                                              out_proj_weight=out_weight, out_proj_bias=out_bias,
+                                              training=True, key_padding_mask=key_padding_mask,
+                                              # TODO not sure about training
+                                              need_weights=need_weights,
+                                              attn_mask=attn_mask, use_separate_proj_weight=False, q_proj_weight=None,
+                                              k_proj_weight=None, v_proj_weight=None, static_k=None, static_v=None,
+                                              average_attn_weights=average_attn_weights, is_causal=is_causal)
+
+    # TODO __repr__ remained
 
 
 class MaskedModule(nn.Module):
@@ -158,6 +250,7 @@ class Conv2dMasked(MaskedModule):
         s += ')'
         return s.format(**self.__dict__)
 
+
 # TODO Conv1D Conv3D ConvTranspose
 # squeeze out Convs for channel pruning
 
@@ -165,4 +258,5 @@ class Conv2dMasked(MaskedModule):
 masked_modules = {
     nn.Linear: LinearMasked,
     nn.Conv2d: Conv2dMasked,
+    nn.MultiheadAttention: AttentionMasked,
 }

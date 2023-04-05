@@ -17,8 +17,10 @@ from ..models.head import mark_classifier
 from ..util import printc, OnlineStats
 from multiprocessing import freeze_support
 
-class TrainingExperiment(Experiment):
+# TODO make sure the model classifier layer won't be pruned
+# TODO change the classifier layer to a new one with the correct number of classes
 
+class TrainingExperiment(Experiment):
     default_dl_kwargs = {'batch_size': 128,
                          'pin_memory': False,
                          'num_workers': 0 #todo removed multi-processing because of error - not sure how to resolve
@@ -40,6 +42,7 @@ class TrainingExperiment(Experiment):
                  pretrained=False,
                  resume=None,
                  resume_optim=False,
+                 weight_name=None,
                  save_freq=10):
 
         # Default children kwargs
@@ -55,7 +58,7 @@ class TrainingExperiment(Experiment):
 
         self.build_dataloader(dataset, **dl_kwargs)
 
-        self.build_model(model, pretrained, resume)
+        self.build_model(model, pretrained, resume, weight_name)
 
         self.build_train(resume_optim=resume_optim, **train_kwargs)
 
@@ -76,14 +79,17 @@ class TrainingExperiment(Experiment):
         self.train_dl = DataLoader(self.train_dataset, shuffle=True, **dl_kwargs)
         self.val_dl = DataLoader(self.val_dataset, shuffle=False, **dl_kwargs)
 
-    def build_model(self, model, pretrained=True, resume=None):
+    def build_model(self, model, pretrained=True, resume=None, weight_name=None):
         if isinstance(model, str):
             if hasattr(models, model):
                 model = getattr(models, model)(pretrained=pretrained)
 
             elif hasattr(torchvision.models, model):
                 # https://pytorch.org/docs/stable/torchvision/models.html
-                model = getattr(torchvision.models, model)(pretrained=pretrained)
+                if weight_name is None:
+                    model = getattr(torchvision.models, model)(pretrained=pretrained)
+                else:
+                    model = getattr(torchvision.models, model)(weights=weight_name)
                 mark_classifier(model)  # add is_classifier attribute
             else:
                 raise ValueError(f"Model {model} not available in custom models or torchvision models")
@@ -127,7 +133,7 @@ class TrainingExperiment(Experiment):
         if not torch.cuda.is_available():
             printc("GPU NOT AVAILABLE, USING CPU!", color="ORANGE")
         self.model.to(self.device)
-        cudnn.benchmark = True   # For fast training.
+        cudnn.benchmark = True  # For fast training.
 
     def checkpoint(self):
         checkpoint_path = self.path / 'checkpoints'
@@ -152,7 +158,7 @@ class TrainingExperiment(Experiment):
                     self.checkpoint()
                 # TODO Early stopping
                 # TODO ReduceLR on plateau?
-                self.log(timestamp=time.time()-since)
+                self.log(timestamp=time.time() - since)
                 self.log_epoch(epoch)
 
 
@@ -178,8 +184,9 @@ class TrainingExperiment(Experiment):
 
         with torch.set_grad_enabled(train):
             for i, (x, y) in enumerate(epoch_iter, start=1):
-                x, y = x.to(self.device), y.to(self.device)
+                x, y = x.to(self.device), torch.squeeze(y.to(self.device))
                 yhat = self.model(x)
+                yhat = torch.squeeze(yhat)
                 loss = self.loss_func(yhat, y)
                 if train:
                     loss.backward()
@@ -218,7 +225,7 @@ class TrainingExperiment(Experiment):
     def __repr__(self):
         if not isinstance(self.params['model'], str) and isinstance(self.params['model'], torch.nn.Module):
             self.params['model'] = self.params['model'].__module__
-        
+
         assert isinstance(self.params['model'], str), f"\nUnexpected model inputs: {self.params['model']}"
         return json.dumps(self.params, indent=4)
 
