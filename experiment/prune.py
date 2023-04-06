@@ -29,6 +29,7 @@ class PruningExperiment(TrainingExperiment):
                                                 resume, resume_optim, weight_name, save_freq)
         self.add_params(strategy=strategy, compression=compression)
 
+        self.pruning = None
         self.apply_pruning(strategy, compression)
 
         self.path = path

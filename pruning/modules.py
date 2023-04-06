@@ -1,7 +1,7 @@
 """Masked versions of common torch.nn.Modules
 
 Implementations of most common parametric torch layers.
-For vision classification networks the inmense majority of the
+For vision classification networks the immense majority of the
 parameters are in either Conv2d layers and Dense Layers (called
 Linear in PyTorch)
 
@@ -14,8 +14,6 @@ import torch.nn.functional as F
 from torch.nn.modules.utils import _pair
 
 
-# TODO need to add multihead attention masked version
-
 def _ensure_tensor(x):
     # Aux functions in case mask arguments are numpy arrays
     if not isinstance(x, torch.Tensor) and x is not None:
@@ -27,7 +25,7 @@ def _same_device(x_mask, x):
     # Aux function to ensure same device fo weight and mask
     # so _mul doesn't fail
     if x.device != x_mask.device:
-            return x_mask.to(x.device)
+        return x_mask.to(x.device)
     return x_mask
 
 
@@ -42,6 +40,7 @@ class MaskedModule(nn.Module):
         super(MaskedModule, self).__init__(*args, **kwargs)
 
 
+# TODO what about masking each head separately?
 class AttentionMasked(MaskedModule):
     def __init__(self, attention_layer, in_weight_mask, out_weight_mask, in_bias_mask=None, out_bias_mask=None):
         super(AttentionMasked, self).__init__()

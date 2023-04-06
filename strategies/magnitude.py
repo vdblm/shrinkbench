@@ -3,7 +3,7 @@
 Implements pruning strategy that prunes as follows
 
 For a given tensor, sort by absolute value and
-keep only the _fraction_ with highest magnitudes
+keep only the _fraction_ with the highest magnitudes
 so that overall desired compression is achieved
 """
 
@@ -23,7 +23,7 @@ from .utils import (fraction_threshold,
 
 class GlobalMagWeight(VisionPruning):
 
-    def model_masks(self):
+    def model_masks(self, prunable=None):
         importances = map_importances(np.abs, self.params())
         flat_importances = flatten_importances(importances)
         threshold = fraction_threshold(flat_importances, self.fraction)
@@ -47,8 +47,8 @@ class GlobalMagGrad(GradientMixin, VisionPruning):
         params = self.params()
         grads = self.param_gradients()
         importances = {mod:
-                       {p: np.abs(params[mod][p]*grads[mod][p])
-                        for p in mod_params}
+                           {p: np.abs(params[mod][p] * grads[mod][p])
+                            for p in mod_params}
                        for mod, mod_params in params.items()}
         flat_importances = flatten_importances(importances)
         threshold = fraction_threshold(flat_importances, self.fraction)
@@ -61,7 +61,7 @@ class LayerMagGrad(GradientMixin, LayerPruning, VisionPruning):
     def layer_masks(self, module):
         params = self.module_params(module)
         grads = self.module_param_gradients(module)
-        importances = {param: np.abs(value*grads[param]) for param, value in params.items()}
+        importances = {param: np.abs(value * grads[param]) for param, value in params.items()}
         masks = {param: fraction_mask(importances[param], self.fraction)
                  for param, value in params.items() if value is not None}
         return masks
@@ -74,8 +74,8 @@ class GlobalMagAct(ActivationMixin, VisionPruning):
         activations = self.activations()
         # [0] is input activation
         importances = {mod:
-                       {p: np.abs(activation_importance(params[mod][p], activations[mod][0]))
-                        for p in mod_params}
+                           {p: np.abs(activation_importance(params[mod][p], activations[mod][0]))
+                            for p in mod_params}
                        for mod, mod_params in params.items()}
         flat_importances = flatten_importances(importances)
         threshold = fraction_threshold(flat_importances, self.fraction)
