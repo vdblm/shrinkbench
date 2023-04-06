@@ -37,7 +37,12 @@ def _same_shape(x_mask, x):
     return x.shape == x_mask.shape
 
 
-class AttentionMasked(nn.Module):
+class MaskedModule(nn.Module):
+    def __init__(self, *args, **kwargs):
+        super(MaskedModule, self).__init__(*args, **kwargs)
+
+
+class AttentionMasked(MaskedModule):
     def __init__(self, attention_layer, in_weight_mask, out_weight_mask, in_bias_mask=None, out_bias_mask=None):
         super(AttentionMasked, self).__init__()
         assert isinstance(attention_layer, nn.MultiheadAttention), "Layer must be an attention layer"
@@ -127,10 +132,10 @@ class AttentionMasked(nn.Module):
     # TODO __repr__ remained
 
 
-class MaskedModule(nn.Module):
+class LinearConvMaskedModule(MaskedModule):
 
     def __init__(self, layer, weight_mask, bias_mask=None):
-        super(MaskedModule, self).__init__()
+        super(LinearConvMaskedModule, self).__init__()
 
         self.weight = layer.weight
         self.bias = layer.bias
@@ -167,7 +172,7 @@ class MaskedModule(nn.Module):
             self.bias.data.mul_(bias_mask)
 
 
-class LinearMasked(MaskedModule):
+class LinearMasked(LinearConvMaskedModule):
 
     def __init__(self, linear_layer, weight_mask, bias_mask=None):
         """Masked version of a linear layer for pruning evaluation
@@ -200,7 +205,7 @@ class LinearMasked(MaskedModule):
         return s
 
 
-class Conv2dMasked(MaskedModule):
+class Conv2dMasked(LinearConvMaskedModule):
 
     def __init__(self, conv_layer, weight_mask, bias_mask=None):
         """Masked version  of 2D convolutional layer for pruning evaluation

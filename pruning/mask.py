@@ -25,7 +25,8 @@ def mask_module(module, masks):
     for name, submodule in module.named_children():
 
         if submodule in masks:
-            mask_kwargs = {k+'_mask': v for k, v in masks[submodule].items()}
+            mask_kwargs = {k + '_mask': v for k, v in masks[submodule].items()}
+            # TODO Make sure items for attention submodule is in_weight, out_weight, in_bias, out_bias
             if isinstance(submodule, MaskedModule):
                 submodule.set_masks(**mask_kwargs)
             else:
@@ -91,6 +92,6 @@ def masks_details(model, masks):
     for name, module in model.named_modules():
         if module in masks:
             for k, v in masks[module].items():
-                rows.append([name, k, 1/v.mean(), np.prod(v.shape), v.shape])
+                rows.append([name, k, 1 / v.mean(), np.prod(v.shape), v.shape])
     columns = ['module', 'param', 'comp', 'size', 'shape']
     return pd.DataFrame(rows, columns=columns)
