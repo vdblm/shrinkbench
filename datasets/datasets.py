@@ -153,6 +153,11 @@ def transform_B(x):
 
 def SLDS_ONE_HOT(x):
     return F.one_hot(x[0], 7).to('cuda')
+def SLDS_to_tensor(x):
+    return torch.Tensor([x]).to(torch.int64).to('cuda')
+def to_float(x):
+    return x.float()
+
 
 def CIFAR100_KC_UPDATE(train=True, path=None):
     transfs = Compose([
@@ -173,18 +178,18 @@ def CIFAR100_KC_UPDATE(train=True, path=None):
 def SLDS_(train=True, path=None):
     transfs = Compose([
         Resize((224, 224)),
-        PILToTensor()
-        # transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+        PILToTensor(),
+        to_float,
+        #transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
     ])
 
 
     target_transfs = Compose([
-        transform_A,
-        SLDS_ONE_HOT
+        SLDS_to_tensor,
+
     ])
 
     data = SLDS("./test.tar.gz", "./SL_Dataset/HAM10000_dataset_attrs.csv", transfs,target_transfs)
-
     return data
 
 
