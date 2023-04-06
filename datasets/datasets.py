@@ -189,7 +189,7 @@ def SLDS_(train=True, path=None):
 
     ])
 
-    data = SLDS("./test.tar.gz", "./SL_Dataset/HAM10000_dataset_attrs.csv", transfs,target_transfs)
+    data = SLDS("./SL.tar.gz", "./SL_Dataset/HAM10000_dataset_attrs.csv", transfs,target_transfs)
     return data
 
 
