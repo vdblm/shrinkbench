@@ -17,7 +17,7 @@ class Pruning(ABC):
     def __init__(self, model, inputs=None, outputs=None, **pruning_params):
         """Construct Pruning class
 
-        Passed params are set as attributes for convienence and
+        Passed params are set as attributes for convenience and
         saved internally for __repr__
 
         Arguments:

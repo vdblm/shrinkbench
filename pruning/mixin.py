@@ -1,10 +1,12 @@
 """ Module with examples of common pruning patterns
 """
+from abc import ABC
+
 from .abstract import Pruning
 from .utils import get_activations, get_param_gradients
 
 
-class ActivationMixin(Pruning):
+class ActivationMixin(Pruning, ABC):
 
     def update_activations(self):
         assert self.inputs is not None, \
@@ -25,7 +27,7 @@ class ActivationMixin(Pruning):
         return self._activations[module]
 
 
-class GradientMixin(Pruning):
+class GradientMixin(Pruning, ABC):
 
     def update_gradients(self):
         assert self.inputs is not None and self.outputs is not None, \
