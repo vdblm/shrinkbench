@@ -73,6 +73,7 @@ class PruningExperiment(TrainingExperiment):
 
         x, y = next(iter(self.val_dl))
         x, y = x.to(self.device), y.to(self.device)
+        #x, y = x.to(self.device).float(), y.to(self.device).float()
 
         # FLOPS
         ops, ops_nz = flops(self.model, x)
