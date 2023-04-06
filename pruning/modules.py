@@ -27,7 +27,7 @@ def _same_device(x_mask, x):
     # Aux function to ensure same device fo weight and mask
     # so _mul doesn't fail
     if x.device != x_mask.device:
-        return x_mask.to(x.device)
+            return x_mask.to(x.device)
     return x_mask
 
 

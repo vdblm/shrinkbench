@@ -15,7 +15,7 @@ from .. import models
 from ..metrics import correct
 from ..models.head import mark_classifier
 from ..util import printc, OnlineStats
-
+from multiprocessing import freeze_support
 
 # TODO make sure the model classifier layer won't be pruned
 # TODO change the classifier layer to a new one with the correct number of classes
@@ -184,8 +184,9 @@ class TrainingExperiment(Experiment):
 
         with torch.set_grad_enabled(train):
             for i, (x, y) in enumerate(epoch_iter, start=1):
-                x, y = x.to(self.device), y.to(self.device)
+                x, y = x.to(self.device), torch.squeeze(y.to(self.device))
                 yhat = self.model(x)
+                yhat = torch.squeeze(yhat)
                 loss = self.loss_func(yhat, y)
                 if train:
                     loss.backward()
@@ -227,3 +228,7 @@ class TrainingExperiment(Experiment):
 
         assert isinstance(self.params['model'], str), f"\nUnexpected model inputs: {self.params['model']}"
         return json.dumps(self.params, indent=4)
+
+
+if __name__ == '__main__':
+    freeze_support()
