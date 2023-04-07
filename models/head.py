@@ -10,11 +10,6 @@ MODELS_WITH_FC = (
     torchvision.models.ShuffleNetV2,
 )
 
-# classifier is .heads.head
-MODELS_WITH_HEADS = (
-    torchvision.models.VisionTransformer,
-)
-
 # classifier is .classifier
 MODELS_WITH_CLASSIFIER = (
     torchvision.models.DenseNet,
@@ -99,7 +94,7 @@ def replace_head(model, n_classes, keep_weights=True):
         raise NotImplementedError(f"Model {model} not supported")
 
 
-def get_classifier_module(model):
+def get_classifier_module(model, model_name=None):
     """Get classifier module for many Vision Classification networks
 
 
@@ -112,7 +107,6 @@ def get_classifier_module(model):
     Raises:
         NotImplementedError -- Raised when the architecture class is not supported
     """
-
     if isinstance(model, MODELS_WITH_FC):
         clf = 'fc'
 
@@ -122,8 +116,6 @@ def get_classifier_module(model):
     elif isinstance(model, MODELS_WITH_CLASSIFIER_LIST):
         i = len(model.classifier) - 1
         clf = f"classifier.{i}"
-    elif isinstance(model, MODELS_WITH_HEADS):
-        clf = 'heads.head'
 
     elif isinstance(model, torchvision.models.SqueezeNet):
         # TODO: Non standard, uses convs
@@ -133,16 +125,21 @@ def get_classifier_module(model):
         # TODO: Non standard, expects 299 and aux outputs
         raise NotImplementedError()
 
-    # TODO include efficientnet
+    elif model_name is not None and model_name == 'VISION_TRANSFORMER':
+        clf = model.fc
+        return clf
+    elif model_name is not None and model_name == 'RESNET':
+        clf = 'fc'
 
+    # TODO include efficientnet
     else:
         raise NotImplementedError(f"Model {model} not recognized")
     clf = getattr(model, clf)
     return clf
 
 
-def mark_classifier(model):
+def mark_classifier(model, model_name=None):
     # Mark it manually for torchvision models
-    clf_module = get_classifier_module(model)
+    clf_module = get_classifier_module(model, model_name)
     clf_module.is_classifier = True
     return model

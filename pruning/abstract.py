@@ -94,7 +94,7 @@ class LayerPruning(Pruning):
     @abstractmethod
     def layer_masks(self, module):
         """Instead of implementing masks for the entire model at once
-        User needs to specify a layer_masks fn that can be applied layerwise
+        User needs to specify a layer_masks fn that can be applied layer-wise
 
         Should return None is layer can't be masked
         """

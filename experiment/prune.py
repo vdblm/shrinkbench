@@ -23,10 +23,12 @@ class PruningExperiment(TrainingExperiment):
                  resume=None,
                  resume_optim=False,
                  weight_name=None,
+                 model_name=None,
                  save_freq=10):
 
         super(PruningExperiment, self).__init__(dataset, model, seed, path, dl_kwargs, train_kwargs, debug, pretrained,
-                                                resume, resume_optim, weight_name, save_freq)
+                                                resume, resume_optim, weight_name, model_name, save_freq)
+        self.model_name = model_name
         self.add_params(strategy=strategy, compression=compression)
 
         self.pruning = None
@@ -77,6 +79,7 @@ class PruningExperiment(TrainingExperiment):
         #x, y = x.to(self.device).float(), y.to(self.device).float()
 
         # FLOPS
+        print(x.shape)
         ops, ops_nz = flops(self.model, x)
         metrics['flops'] = ops
         metrics['flops_nz'] = ops_nz

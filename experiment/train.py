@@ -15,7 +15,7 @@ from .. import models
 from ..metrics import correct
 from ..models.head import mark_classifier
 from ..util import printc, OnlineStats
-from multiprocessing import freeze_support
+
 
 # TODO make sure the model classifier layer won't be pruned
 # TODO change the classifier layer to a new one with the correct number of classes
@@ -23,7 +23,7 @@ from multiprocessing import freeze_support
 class TrainingExperiment(Experiment):
     default_dl_kwargs = {'batch_size': 128,
                          'pin_memory': False,
-                         'num_workers': 0 #todo removed multi-processing because of error - not sure how to resolve
+                         'num_workers': 0  # todo removed multi-processing because of error - not sure how to resolve
                          }
 
     default_train_kwargs = {'optim': 'SGD',
@@ -43,10 +43,12 @@ class TrainingExperiment(Experiment):
                  resume=None,
                  resume_optim=False,
                  weight_name=None,
+                 model_name=None,
                  save_freq=10):
 
         # Default children kwargs
         super(TrainingExperiment, self).__init__(seed)
+        self.model_name = model_name
         dl_kwargs = {**self.default_dl_kwargs, **dl_kwargs}
         train_kwargs = {**self.default_train_kwargs, **train_kwargs}
 
@@ -90,10 +92,11 @@ class TrainingExperiment(Experiment):
                     model = getattr(torchvision.models, model)(pretrained=pretrained)
                 else:
                     model = getattr(torchvision.models, model)(weights=weight_name)
-                mark_classifier(model)  # add is_classifier attribute
+                mark_classifier(model, self.model_name)  # add is_classifier attribute
             else:
                 raise ValueError(f"Model {model} not available in custom models or torchvision models")
 
+        mark_classifier(model, self.model_name)  # add is_classifier attribute
         self.model = model
 
         if resume is not None:
@@ -184,9 +187,8 @@ class TrainingExperiment(Experiment):
 
         with torch.set_grad_enabled(train):
             for i, (x, y) in enumerate(epoch_iter, start=1):
-                x, y = x.to(self.device), torch.squeeze(y.to(self.device))
+                x, y = x.to(self.device), y.to(self.device)
                 yhat = self.model(x)
-                yhat = torch.squeeze(yhat)
                 loss = self.loss_func(yhat, y)
                 if train:
                     loss.backward()
@@ -228,7 +230,3 @@ class TrainingExperiment(Experiment):
 
         assert isinstance(self.params['model'], str), f"\nUnexpected model inputs: {self.params['model']}"
         return json.dumps(self.params, indent=4)
-
-
-if __name__ == '__main__':
-    freeze_support()
