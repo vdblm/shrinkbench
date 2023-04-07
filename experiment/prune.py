@@ -50,8 +50,7 @@ class PruningExperiment(TrainingExperiment):
         self.to_device()
         self.build_logging(self.train_metrics, self.path)
 
-        self.save_metrics()
-
+        # self.save_metrics()  # TODO fix this
         if self.pruning.compression > 1:
             self.run_epochs()
 
@@ -79,7 +78,6 @@ class PruningExperiment(TrainingExperiment):
         #x, y = x.to(self.device).float(), y.to(self.device).float()
 
         # FLOPS
-        print(x.shape)
         ops, ops_nz = flops(self.model, x)
         metrics['flops'] = ops
         metrics['flops_nz'] = ops_nz

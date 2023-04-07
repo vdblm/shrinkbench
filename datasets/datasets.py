@@ -48,7 +48,6 @@ def dataset_path(dataset, path=None):
     """
     return _paths[dataset]
 
-
     # if path is None: #todo edited to get this working
     #     # Look for the dataset in known paths
     #     if 'DATAPATH' in os.environ:
@@ -139,6 +138,20 @@ def CIFAR100(train=True, path=None):
     return dataset
 
 
+def CIFAR100_Vahid(train=True, path=None):
+    """Thin wrapper around torchvision.datasets.CIFAR100
+    """
+    mean, std = [0.507, 0.487, 0.441], [0.267, 0.256, 0.276]
+    normalize = transforms.Normalize(mean=mean, std=std)
+    if train:
+        preproc = [Resize((224, 224))]
+    else:
+        preproc = [Resize((224, 224))]
+    dataset = dataset_builder('CIFAR100', train, normalize, preproc, path)
+    dataset.shape = (3, 224, 224)
+    return dataset
+
+
 from torchvision.transforms import Resize, ToTensor, PILToTensor, Compose
 import torch
 import torch.nn.functional as F
@@ -151,10 +164,15 @@ def transform_A(x):
 def transform_B(x):
     return F.one_hot(x[0], 100).to('cuda')
 
+
 def SLDS_ONE_HOT(x):
     return F.one_hot(x[0], 7).to('cuda')
+
+
 def SLDS_to_tensor(x):
     return torch.Tensor([x]).to(torch.int64).to('cuda')
+
+
 def to_float(x):
     return x.float()
 
@@ -166,34 +184,33 @@ def CIFAR100_KC_UPDATE(train=True, path=None):
         # transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
     ])
 
-
     target_transfs = Compose([
         transform_A,
         transform_B
     ])
 
     data = datasets.CIFAR100(root="./CIFAR100", transform=transfs, target_transform=target_transfs)
-    return DataLoader(data, batch_size=32, shuffle=True, num_workers  = 0)
+    return DataLoader(data, batch_size=32, shuffle=True, num_workers=0)
+
 
 def SLDS_(train=True, path=None):
     transfs = Compose([
         Resize((224, 224)),
         PILToTensor(),
         to_float,
-        #transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+        # transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
     ])
-
 
     target_transfs = Compose([
         SLDS_to_tensor,
 
     ])
 
-    data = SLDS("./SL.tar.gz", "./SL_Dataset/HAM10000_dataset_attrs.csv", transfs,target_transfs)
+    data = SLDS("./SL.tar.gz", "./SL_Dataset/HAM10000_dataset_attrs.csv", transfs, target_transfs)
     return data
 
+    # return DataLoader(data, batch_size=32, shuffle=True, num_workers  = 0)
 
-    #return DataLoader(data, batch_size=32, shuffle=True, num_workers  = 0)
 
 def ImageNet(train=True, path=None):
     """Thin wrapper around torchvision.datasets.ImageNet

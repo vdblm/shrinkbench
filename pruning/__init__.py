@@ -1,5 +1,5 @@
 from .mask import mask_module, masks_details
-from .modules import LinearMasked, Conv2dMasked
+from .modules import LinearMasked, Conv2dMasked, AttentionMasked
 from .mixin import ActivationMixin, GradientMixin
 from .abstract import Pruning, LayerPruning
 from .vision import VisionPruning

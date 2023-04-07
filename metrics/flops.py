@@ -5,7 +5,7 @@ import torch
 from . import nonzero
 from .abstract_flops import dense_flops, conv2d_flops, attention_flops
 from ..pruning.utils import get_activations
-from ..pruning import Conv2dMasked, LinearMasked
+from ..pruning import Conv2dMasked, LinearMasked, AttentionMasked
 
 
 # TODO layernorm and attention (Also Masked version of these)
@@ -59,13 +59,16 @@ def flops(model, input):
         LinearMasked: _linear_flops,
         nn.LayerNorm: _layer_norm_flops,
         nn.MultiheadAttention: _attention_flops,
+        AttentionMasked: _attention_flops,
         # TODO masked version of these
     }
 
     total_flops = nonzero_flops = 0
+    print('Before getting activations')
     activations = get_activations(model, input)
 
     # The ones we need for backprop
+    print('Starting FLOP computation')
     for m, (act, _) in activations.items():
         if m.__class__ in FLOP_fn:
             module_flops = FLOP_fn[m.__class__](m, act)

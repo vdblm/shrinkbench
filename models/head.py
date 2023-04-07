@@ -2,6 +2,7 @@
 """
 from torch import nn
 import torchvision.models
+torchvision.models.VisionTransformer
 
 # classifier is .fc
 MODELS_WITH_FC = (
@@ -126,7 +127,7 @@ def get_classifier_module(model, model_name=None):
         raise NotImplementedError()
 
     elif model_name is not None and model_name == 'VISION_TRANSFORMER':
-        clf = model.fc
+        clf = model.heads.head  # TODO fix this
         return clf
     elif model_name is not None and model_name == 'RESNET':
         clf = 'fc'

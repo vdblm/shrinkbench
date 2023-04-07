@@ -9,4 +9,5 @@ from .datasets import (MNIST,
                        ImageNet,
                        Places365,
                        CIFAR100_KC_UPDATE,
+                       CIFAR100_Vahid,
                        SLDS_)

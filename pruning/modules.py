@@ -51,8 +51,7 @@ class AttentionMasked(MaskedModule):
 
         self.in_proj_weight = attention_layer.in_proj_weight
         self.in_proj_bias = attention_layer.in_proj_bias
-        self.out_proj_weight = attention_layer.out_proj.weight
-        self.out_proj_bias = attention_layer.out_proj.bias
+        self.out_proj = attention_layer.out_proj
 
         self.register_buffer("in_proj_weight_mask", None)
         self.register_buffer("in_proj_bias_mask", None)
@@ -60,29 +59,29 @@ class AttentionMasked(MaskedModule):
         self.set_masks(in_proj_weight_mask, in_proj_bias_mask)
 
     def forward_pre(self):
-        in_weight = self.in_proj_weight * self.in_weight_mask
+        in_weight = self.in_proj_weight * self.in_proj_weight_mask
 
-        if self.in_bias_mask is not None:
-            in_bias = self.in_proj_bias * self.in_bias_mask
+        if self.in_proj_bias_mask is not None:
+            in_bias = self.in_proj_bias * self.in_proj_bias_mask
         else:
             in_bias = self.in_proj_bias
 
         return in_weight, in_bias
 
-    def set_masks(self, in_weight_mask, in_bias_mask=None):
-        assert _same_shape(in_weight_mask, self.in_proj_weight)
-        assert _same_shape(in_bias_mask, self.in_proj_bias)
+    def set_masks(self, in_proj_weight_mask, in_proj_bias_mask=None):
+        assert _same_shape(in_proj_weight_mask, self.in_proj_weight)
+        assert _same_shape(in_proj_bias_mask, self.in_proj_bias)
 
-        in_weight_mask = _ensure_tensor(in_weight_mask).to('cuda')
-        self.in_proj_weight_mask = _same_device(in_weight_mask, self.in_proj_weight)
-        self.in_proj_weight.data.mul_(in_weight_mask)
+        in_proj_weight_mask = _ensure_tensor(in_proj_weight_mask).to('cuda')
+        self.in_proj_weight_mask = _same_device(in_proj_weight_mask, self.in_proj_weight)
+        self.in_proj_weight.data.mul_(in_proj_weight_mask)
 
-        if in_bias_mask is not None:
-            in_bias_mask = _ensure_tensor(in_bias_mask).to('cuda')
+        if in_proj_bias_mask is not None:
+            in_proj_bias_mask = _ensure_tensor(in_proj_bias_mask).to('cuda')
             assert self.in_proj_bias is not None, "Provided layer must have bias for it to be masked"
-            assert _same_shape(in_bias_mask, self.in_proj_bias), f"Bias Mask must match dimensions"
-            self.in_proj_bias_mask = _same_device(in_bias_mask, self.in_proj_bias)
-            self.in_proj_bias.data.mul_(in_bias_mask)
+            assert _same_shape(in_proj_bias_mask, self.in_proj_bias), f"Bias Mask must match dimensions"
+            self.in_proj_bias_mask = _same_device(in_proj_bias_mask, self.in_proj_bias)
+            self.in_proj_bias.data.mul_(in_proj_bias_mask)
 
     def forward(
             self,
@@ -96,10 +95,11 @@ class AttentionMasked(MaskedModule):
             is_causal=False):
         in_weight, in_bias = self.forward_pre()
         return F.multi_head_attention_forward(query=query, key=key, value=value, embed_dim_to_check=self.embed_dim,
-                                              num_heads=self.num_heads, in_proj_weight=in_weight, in_proj_bias=in_bias,
+                                              num_heads=self.num_heads, in_proj_weight=in_weight,
+                                              in_proj_bias=in_bias,
                                               bias_k=None, bias_v=None, add_zero_attn=self.add_zero_attn,
                                               dropout_p=self.dropout,
-                                              out_proj_weight=self.out_proj_weight, out_proj_bias=self.out_proj_bias,
+                                              out_proj_weight=self.out_proj.weight, out_proj_bias=self.out_proj.bias,
                                               training=True, key_padding_mask=key_padding_mask,
                                               # TODO not sure about training
                                               need_weights=need_weights,

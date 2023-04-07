@@ -68,6 +68,7 @@ def get_activations(model, input):
     activations = OrderedDict()
 
     def store_activations(module, input, output):
+        print(module)
         if isinstance(module, nn.ReLU):
             # TODO ResNet18 implementation reuses a
             # single ReLU layer?
@@ -75,7 +76,11 @@ def get_activations(model, input):
         assert module not in activations, \
             f"{module} already in activations"
         # TODO [0] means first input, not all models have a single input
-        activations[module] = (input[0].detach().cpu().numpy().copy(),
+        if isinstance(input, tuple):
+            input = input[0]
+        if isinstance(output, tuple):
+            output = output[0]
+        activations[module] = (input.detach().cpu().numpy().copy(),
                                output.detach().cpu().numpy().copy(),)
 
     fn, hooks = hook_applyfn(store_activations, model, forward=True)
